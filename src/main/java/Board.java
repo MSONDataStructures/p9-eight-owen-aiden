@@ -1,80 +1,123 @@
-import edu.princeton.cs.algs4.In;
-import edu.princeton.cs.algs4.StdOut;
-import edu.princeton.cs.algs4.MinPQ;
+//written by owen
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class Board {
+    private final int[][] tiles;
+    private final int n;
 
-    public Board(int[][] blocks) {
-        // construct a board from an n-by-n array of blocks
-        // (where blocks[i][j] = block in row i, column j)
-        // suggestions for immutability in the Binary Heap video
+    public Board(int[][] tiles) {
+        this.n = tiles.length;
+        this.tiles = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            this.tiles[i] = Arrays.copyOf(tiles[i], n);
+        }
     }
 
     public int dimension() {
-        // board dimension n
-        return 0;
+        return n;
     }
 
     public int hamming() {
-        // number of blocks out of place
-        return 0;
+        int count = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (tiles[i][j] != 0 && tiles[i][j] != i * n + j + 1) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     public int manhattan() {
-        // sum of Manhattan distances between blocks and goal
-        return 0;
-    }
-
-    public String toString() {
-        // string representation of this board
-        // for example
-        // 3
-        //  1 0 3
-        //  4 2 5
-        //  7 8 6
-        return null;
-    }
-
-    public boolean equals(Object y) {
-        // does this board equal y?
-        return false;
-    }
-
-    public Board twin() {
-        // a board that is obtained by exchanging any pair of blocks
-        return null;
+        int distance = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                int value = tiles[i][j];
+                if (value != 0) {
+                    int targetRow = (value - 1) / n;
+                    int targetCol = (value - 1) % n;
+                    distance += Math.abs(i - targetRow) + Math.abs(j - targetCol);
+                }
+            }
+        }
+        return distance;
     }
 
     public boolean isGoal() {
-        // is this board the goal board?
-        return false;
+        return hamming() == 0;
+    }
+
+    public boolean equals(Object y) {
+        if (y == this) return true;
+        if (y == null || y.getClass() != this.getClass()) return false;
+        Board other = (Board) y;
+        return Arrays.deepEquals(this.tiles, other.tiles);
     }
 
     public Iterable<Board> neighbors() {
-        // all neighboring boards
-        return null;
+        List<Board> neighbors = new ArrayList<>();
+        int blankRow = -1, blankCol = -1;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (tiles[i][j] == 0) {
+                    blankRow = i;
+                    blankCol = j;
+                    break;
+                }
+            }
+        }
+
+        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] dir : directions) {
+            int newRow = blankRow + dir[0];
+            int newCol = blankCol + dir[1];
+            if (newRow >= 0 && newRow < n && newCol >= 0 && newCol < n) {
+                int[][] newTiles = copyTiles();
+                newTiles[blankRow][blankCol] = newTiles[newRow][newCol];
+                newTiles[newRow][newCol] = 0;
+                neighbors.add(new Board(newTiles));
+            }
+        }
+        return neighbors;
     }
 
-    public static void main(String[] args) {
-        // create initial board from file
-        In in = new In("./8puzzle-test-files/puzzle3x3-07.txt");
-        int n = in.readInt();
-        int[][] tiles = new int[n][n];
-        for (int i = 0; i < n; i++)
-            for (int j = 0; j < n; j++)
-                tiles[i][j] = in.readInt();
-        Board initial = new Board(tiles);
-
-        // solve the puzzle
-        Solver solver = new Solver(initial);
-
-        // print solution to standard output
-        if (!solver.isSolvable())
-            StdOut.println("No solution possible");
-        else {
-            StdOut.println("Minimum number of moves = " + solver.moves());
-            for (Board board : solver.solution())
-                StdOut.println(board);
+    public Board twin() {
+        int[][] newTiles = copyTiles();
+        if (newTiles[0][0] != 0 && newTiles[0][1] != 0) {
+            swap(newTiles, 0, 0, 0, 1);
+        } else {
+            swap(newTiles, 1, 0, 1, 1);
         }
+        return new Board(newTiles);
+    }
+
+    private int[][] copyTiles() {
+        int[][] copy = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            copy[i] = Arrays.copyOf(tiles[i], n);
+        }
+        return copy;
+    }
+
+    private void swap(int[][] array, int i1, int j1, int i2, int j2) {
+        int temp = array[i1][j1];
+        array[i1][j1] = array[i2][j2];
+        array[i2][j2] = temp;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(n).append("\n");
+        for (int[] row : tiles) {
+            for (int value : row) {
+                sb.append(String.format("%2d ", value));
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }
